@@ -1,0 +1,9 @@
+@use '@angular/material' as mat;
+
+html {
+  @include mat.theme((
+    color: mat.$violet-palette,
+    typography: Inter,
+    density: 0
+  ));
+}

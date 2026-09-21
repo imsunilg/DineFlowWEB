@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: var(--brand-primary, #7c3aed);
+  --color-ink: var(--brand-secondary, #111827);
+  --color-accent: var(--brand-accent, #f59e0b);
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+html, body { height: 100%; }
+body { margin: 0; font-family: var(--font-sans); background: #f5f6fa; color: #1f2937; }
+
+@utility card { @apply rounded-2xl bg-white shadow-sm ring-1 ring-black/5; }
+@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50; }
+@utility btn-primary { @apply btn bg-brand text-white hover:brightness-110 active:brightness-95; }
+@utility btn-ghost { @apply btn bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50; }
+@utility btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700; }
+@utility input { @apply w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20; }
+@utility label { @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500; }
+@utility badge { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold; }
+@utility field-error { @apply mt-1 text-xs text-red-600; }
+
+.mi { font-family: "Material Icons Outlined"; font-weight: normal; font-style: normal; font-size: 20px; line-height: 1; display: inline-block; -webkit-font-smoothing: antialiased; }
+.toast-success { --mat-snack-bar-container-color: #065f46; --mat-snack-bar-supporting-text-color: #fff; }
+.toast-error { --mat-snack-bar-container-color: #991b1b; --mat-snack-bar-supporting-text-color: #fff; }
