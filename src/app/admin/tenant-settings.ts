@@ -16,7 +16,7 @@ interface Tenant {
 
 const FEATURE_LABELS: Record<string, string> = {
   barManagement: 'Bar management', restaurantManagement: 'Restaurant & POS', inventory: 'Inventory & purchasing', loyalty: 'Loyalty & offers',
-  reservation: 'Reservations', staff: 'Staff', reports: 'Reports',
+  reservation: 'Reservations', delivery: 'Delivery', staff: 'Staff & HR',
 };
 const TEXT_FIELDS: { key: string; label: string; type?: string; required?: boolean }[] = [
   { key: 'tenantName', label: 'Business name', required: true }, { key: 'displayName', label: 'Display name (shown in the app)', required: true },
