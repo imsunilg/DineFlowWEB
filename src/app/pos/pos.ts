@@ -245,7 +245,7 @@ export class PosComponent implements OnInit {
   protected readonly tableId = signal<string | null>(null);
   protected readonly customer = signal<Customer | null>(null);
   protected readonly search = signal('');
-  protected readonly area = signal('');
+  protected readonly area = signal((inject(ActivatedRoute).snapshot.data['area'] as string | undefined) ?? '');
   protected readonly categoryId = signal('');
 
   protected readonly chooser = signal<MenuItem | null>(null);

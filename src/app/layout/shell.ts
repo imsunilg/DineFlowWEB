@@ -15,6 +15,12 @@ const NAV: NavGroup[] = [
     { label: 'Orders', icon: 'receipt_long', link: '/orders', permission: 'Order.View' },
     { label: 'Kitchen', icon: 'soup_kitchen', link: '/kitchen', permission: 'Kitchen.View' },
   ] },
+  { title: 'Bar', items: [
+    { label: 'Bar POS', icon: 'local_bar', link: '/bar/pos', permission: 'Order.Create', feature: 'barManagement' },
+    { label: 'Bar stock', icon: 'inventory_2', link: '/bar/stock', permission: 'Bar.View', feature: 'barManagement' },
+    { label: 'Brands', icon: 'liquor', link: '/bar/brands', permission: 'Bar.View', feature: 'barManagement' },
+    { label: 'Drinks', icon: 'wine_bar', link: '/bar/drinks', permission: 'Bar.View', feature: 'barManagement' },
+  ] },
   { title: 'Restaurant', items: [
     { label: 'Menu', icon: 'restaurant_menu', link: '/menu', permission: 'Menu.View', feature: 'restaurantManagement' },
     { label: 'Categories', icon: 'category', link: '/menu/categories', permission: 'Menu.View', feature: 'restaurantManagement' },

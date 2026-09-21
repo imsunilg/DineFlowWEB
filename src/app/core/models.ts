@@ -87,3 +87,30 @@ export interface Receipt {
 
 export interface MenuTreeCategory { id: string; name: string; serviceArea: string; items: MenuItem[] }
 export interface MenuTree { id: string; name: string; categories: MenuTreeCategory[] }
+
+// ---- Bar ----
+export interface BarCounter { id: string; code: string; name: string; isDefault: boolean; isActive: boolean }
+export interface LiquorCategory { id: string; name: string; sortOrder: number; isActive: boolean }
+export interface LiquorBrand { id: string; categoryId: string; categoryName: string; name: string; isActive: boolean }
+export interface BottleSize { id: string; label: string; volumeMl: number; isActive: boolean }
+export interface BarProduct {
+  id: string; brandId: string; brandName: string; categoryName: string; bottleSizeId: string; sizeLabel: string; volumeMl: number;
+  sku: string | null; reorderLevelBottles: number; isActive: boolean; displayName: string;
+}
+export interface StockRow {
+  counterId: string; counterName: string; productId: string; productName: string; categoryName: string; volumeMl: number;
+  quantityMl: number; bottles: number; wholeBottles: number; looseMl: number; reorderLevelBottles: number; isLow: boolean;
+}
+export interface StockTxn {
+  id: string; counterName: string; productId: string; productName: string; type: string; quantityMl: number; quantityBottles: number;
+  balanceAfterMl: number; referenceType: string | null; referenceId: string | null; notes: string | null; createdAt: string;
+}
+export interface StockReportRow {
+  productId: string; productName: string; categoryName: string; volumeMl: number; opening: number; purchased: number; sold: number;
+  transfersNet: number; breakage: number; wastage: number; other: number; closing: number;
+}
+export interface Pour { variantId: string | null; variantName: string | null; productId: string; productName: string; mlPerUnit: number }
+export interface Drink {
+  id: string; code: string; name: string; categoryName: string; basePrice: number; isAvailable: boolean;
+  variants: { id: string; name: string }[]; pours: Pour[];
+}
