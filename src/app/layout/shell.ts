@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../core/auth.service';
 import { BrandingService } from '../core/branding.service';
+import { NotificationBellComponent } from './notification-bell';
 
 interface NavItem { label: string; icon: string; link: string; permission?: string; feature?: string }
 interface NavGroup { title: string; items: NavItem[] }
@@ -25,12 +26,20 @@ const NAV: NavGroup[] = [
     { label: 'Menu', icon: 'restaurant_menu', link: '/menu', permission: 'Menu.View', feature: 'restaurantManagement' },
     { label: 'Categories', icon: 'category', link: '/menu/categories', permission: 'Menu.View', feature: 'restaurantManagement' },
   ] },
+  { title: 'Inventory', items: [
+    { label: 'Stock', icon: 'inventory', link: '/inventory/stock', permission: 'Inventory.View', feature: 'inventory' },
+    { label: 'Purchases', icon: 'local_shipping', link: '/inventory/purchases', permission: 'Purchase.View', feature: 'inventory' },
+    { label: 'Suppliers', icon: 'storefront', link: '/inventory/suppliers', permission: 'Purchase.View', feature: 'inventory' },
+    { label: 'Adjustments', icon: 'tune', link: '/inventory/adjustments', permission: 'Inventory.View', feature: 'inventory' },
+    { label: 'Items & setup', icon: 'category', link: '/inventory/items', permission: 'Inventory.View', feature: 'inventory' },
+    { label: 'Recipes', icon: 'menu_book', link: '/inventory/recipes', permission: 'Inventory.View', feature: 'inventory' },
+  ] },
   { title: 'CRM', items: [{ label: 'Customers', icon: 'groups', link: '/customers', permission: 'Customer.View' }] },
 ];
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NotificationBellComponent],
   template: `
     <div class="flex h-screen overflow-hidden">
       @if (menuOpen()) { <div class="fixed inset-0 z-30 bg-black/40 lg:hidden" (click)="menuOpen.set(false)"></div> }
@@ -64,6 +73,7 @@ const NAV: NavGroup[] = [
           <button type="button" class="rounded-lg p-2 text-gray-600 hover:bg-gray-100 lg:hidden" aria-label="Open menu" (click)="menuOpen.set(true)"><span class="mi">menu</span></button>
           <p class="hidden text-sm font-medium text-gray-500 lg:block">{{ branding.displayName() }}</p>
           <div class="flex items-center gap-3">
+            <app-notification-bell />
             <div class="text-right leading-tight">
               <p class="text-sm font-semibold text-gray-900">{{ auth.user()?.fullName }}</p>
               <p class="text-xs text-gray-500">{{ auth.user()?.roles?.join(', ') }}</p>

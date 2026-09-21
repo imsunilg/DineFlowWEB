@@ -114,3 +114,38 @@ export interface Drink {
   id: string; code: string; name: string; categoryName: string; basePrice: number; isAvailable: boolean;
   variants: { id: string; name: string }[]; pours: Pour[];
 }
+
+// ---- Inventory & purchase ----
+export interface Warehouse { id: string; code: string; name: string; isDefault: boolean; isActive: boolean }
+export interface InvStockRow {
+  warehouseId: string; warehouseName: string; itemId: string; code: string; name: string; categoryName: string | null; unitCode: string;
+  quantity: number; minStock: number; maxStock: number; reorderLevel: number; costPrice: number; stockValue: number; level: 'OK' | 'Low' | 'Out' | 'Over';
+}
+export interface InvTxn {
+  id: string; warehouseName: string; itemId: string; itemName: string; unitCode: string; type: string; quantity: number; balanceAfter: number;
+  unitCost: number | null; referenceType: string | null; notes: string | null; createdAt: string;
+}
+export interface StockAlert { source: 'Inventory' | 'Bar'; id: string; name: string; quantity: number; threshold: number; unit: string }
+export interface InvItem { id: string; code: string; name: string; unitCode: string; costPrice: number; isActive: boolean }
+export interface RecipeLine { variantId: string | null; variantName: string | null; itemId: string; itemName: string; unitCode: string; quantity: number }
+export interface Recipe { menuItemId: string; code: string; name: string; categoryName: string; variants: { id: string; name: string }[]; lines: RecipeLine[] }
+
+export interface Supplier { id: string; code: string; name: string; paymentTermsDays: number; isActive: boolean }
+export interface PoLine {
+  id: string; inventoryItemId: string | null; barProductId: string | null; description: string; quantity: number; unitPrice: number; taxPercent: number;
+  lineTotal: number; receivedQuantity: number; returnedQuantity: number; remainingQuantity: number;
+}
+export interface PurchaseOrder {
+  id: string; poNo: string; supplierId: string; supplierName: string; status: string; orderDate: string; expectedDate: string | null; notes: string | null;
+  subtotal: number; taxAmount: number; total: number; lines: PoLine[];
+  receipts: { id: string; grnNo: string; receivedDate: string; notes: string | null }[];
+  invoices: { id: string; invoiceNo: string; invoiceDate: string; dueDate: string | null; total: number; paidAmount: number; status: string }[];
+}
+export interface PurchaseOrderSummary { id: string; poNo: string; supplierName: string; status: string; orderDate: string; total: number; lineCount: number }
+export interface PurchaseInvoice {
+  id: string; invoiceNo: string; supplierId: string; supplierName: string; purchaseOrderId: string; poNo: string; invoiceDate: string; dueDate: string | null;
+  subtotal: number; taxAmount: number; total: number; paidAmount: number; dueAmount: number; status: string;
+  payments: { id: string; methodName: string; amount: number; paidAt: string; reference: string | null }[];
+}
+
+export interface AppNotification { id: string; type: string; title: string; message: string; entity: string | null; entityId: string | null; isRead: boolean; createdAt: string }
