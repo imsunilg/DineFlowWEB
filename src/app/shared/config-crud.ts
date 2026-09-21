@@ -10,7 +10,7 @@ export type FieldType = 'text' | 'number' | 'checkbox' | 'select' | 'date' | 'em
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyRow = Record<string, any> & { id: string };
 
-export interface CrudField { key: string; label: string; type: FieldType; required?: boolean; step?: string; options?: string; optional?: boolean; hint?: string }
+export interface CrudField { key: string; label: string; type: FieldType; required?: boolean; step?: string; options?: string; choices?: { value: string; label: string }[]; optional?: boolean; hint?: string; nullIfZero?: boolean }
 export interface CrudLookup { path: string; label: (row: AnyRow) => string; filter?: (row: AnyRow) => boolean; paged?: boolean }
 export interface CrudSection {
   key: string; label: string; singular: string; path: string; paged?: boolean;
@@ -152,6 +152,7 @@ export class ConfigCrudComponent implements OnInit {
   protected show(v: unknown): string { return v === null || v === undefined || v === '' ? '—' : v === true ? 'Yes' : v === false ? 'No' : String(v); }
 
   protected options(f: CrudField): { value: string; label: string }[] {
+    if (f.choices) return f.choices;
     const lk = f.options ? this.lookups()[f.options] : undefined;
     if (!lk) return [];
     return (this.lookupData()[f.options!] ?? []).filter(lk.filter ?? (r => r['isActive'] !== false)).map(r => ({ value: r.id, label: lk.label(r) }));
@@ -173,7 +174,7 @@ export class ConfigCrudComponent implements OnInit {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const body = { ...this.form.getRawValue() } as Record<string, unknown>;
     for (const f of this.section().fields) {
-      if (f.type === 'number') body[f.key] = Number(body[f.key]);
+      if (f.type === 'number') { body[f.key] = Number(body[f.key]); if (f.nullIfZero && !body[f.key]) body[f.key] = null; }
       else if (f.type !== 'checkbox' && body[f.key] === '') body[f.key] = null;
     }
     const id = this.editingId(), path = this.section().path;

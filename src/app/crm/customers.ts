@@ -7,10 +7,11 @@ import { errorMessage } from '../core/http.interceptors';
 import { Customer, Paged } from '../core/models';
 import { ToastService } from '../core/toast.service';
 import { ConfirmService, DrawerComponent, EmptyStateComponent, ErrorStateComponent, PagerComponent, SkeletonComponent } from '../shared/ui';
+import { CustomerProfileComponent } from './customer-profile';
 
 @Component({
   selector: 'app-customers',
-  imports: [ReactiveFormsModule, DrawerComponent, EmptyStateComponent, ErrorStateComponent, PagerComponent, SkeletonComponent],
+  imports: [ReactiveFormsModule, DrawerComponent, EmptyStateComponent, ErrorStateComponent, PagerComponent, SkeletonComponent, CustomerProfileComponent],
   template: `
     <div class="mx-auto max-w-6xl space-y-6">
       <div class="flex flex-wrap items-center justify-between gap-3">
@@ -34,7 +35,7 @@ import { ConfirmService, DrawerComponent, EmptyStateComponent, ErrorStateCompone
               <tbody class="divide-y divide-gray-100">
                 @for (c of customers(); track c.id) {
                   <tr class="hover:bg-gray-50/60">
-                    <td class="px-5 py-3"><div class="flex items-center gap-3"><span class="grid h-9 w-9 place-items-center rounded-full bg-brand/10 text-sm font-bold text-brand">{{ c.fullName.charAt(0).toUpperCase() }}</span><span class="font-semibold text-gray-900">{{ c.fullName }}</span></div></td>
+                    <td class="px-5 py-3"><div class="flex items-center gap-3"><span class="grid h-9 w-9 place-items-center rounded-full bg-brand/10 text-sm font-bold text-brand">{{ c.fullName.charAt(0).toUpperCase() }}</span><button type="button" class="text-left font-semibold text-gray-900 hover:text-brand hover:underline" (click)="profileId.set(c.id)">{{ c.fullName }}</button></div></td>
                     <td class="px-5 py-3 text-gray-600">{{ c.phone || '—' }}</td>
                     <td class="px-5 py-3 text-gray-600">{{ c.email || '—' }}</td>
                     <td class="px-5 py-3 text-gray-600">{{ c.birthday || '—' }}</td>
@@ -54,6 +55,8 @@ import { ConfirmService, DrawerComponent, EmptyStateComponent, ErrorStateCompone
       </div>
     </div>
 
+    <app-customer-profile [customerId]="profileId()" (closed)="profileId.set(null)" />
+
     <app-drawer [open]="drawer()" [title]="editingId() ? 'Edit customer' : 'New customer'" (closed)="drawer.set(false)">
       <form id="custForm" class="space-y-4" [formGroup]="form" (ngSubmit)="save()">
         <div><label class="label" for="cname">Full name</label><input id="cname" class="input" formControlName="fullName" />
@@ -67,6 +70,7 @@ import { ConfirmService, DrawerComponent, EmptyStateComponent, ErrorStateCompone
           <div><label class="label" for="cbday">Birthday</label><input id="cbday" class="input" type="date" formControlName="birthday" /></div>
           <div><label class="label" for="cann">Anniversary</label><input id="cann" class="input" type="date" formControlName="anniversary" /></div>
         </div>
+        @if (!editingId()) { <div><label class="label" for="cref">Referral code (optional)</label><input id="cref" class="input" maxlength="20" formControlName="referralCode" placeholder="Code from a member who referred them" /></div> }
         <div><label class="label" for="cnotes">Notes</label><textarea id="cnotes" rows="3" class="input" formControlName="notes"></textarea></div>
         @if (formError()) { <p class="field-error">{{ formError() }}</p> }
       </form>
@@ -94,6 +98,7 @@ export class CustomersComponent implements OnInit {
   protected readonly busy = signal(false);
   protected readonly formError = signal('');
   protected readonly editingId = signal<string | null>(null);
+  protected readonly profileId = signal<string | null>(null);
   protected readonly canCreate = computed(() => this.auth.hasPermission('Customer.Create'));
   protected readonly canUpdate = computed(() => this.auth.hasPermission('Customer.Update'));
   private search = '';
@@ -105,6 +110,7 @@ export class CustomersComponent implements OnInit {
     birthday: [''],
     anniversary: [''],
     notes: [''],
+    referralCode: [''],
   });
 
   constructor() { this.search$.pipe(debounceTime(300)).subscribe(s => { this.search = s; this.page.set(1); this.load(); }); }
@@ -125,14 +131,14 @@ export class CustomersComponent implements OnInit {
   protected open(c?: Customer): void {
     this.formError.set('');
     this.editingId.set(c?.id ?? null);
-    this.form.reset({ fullName: c?.fullName ?? '', phone: c?.phone ?? '', email: c?.email ?? '', birthday: c?.birthday ?? '', anniversary: c?.anniversary ?? '', notes: c?.notes ?? '' });
+    this.form.reset({ fullName: c?.fullName ?? '', phone: c?.phone ?? '', email: c?.email ?? '', birthday: c?.birthday ?? '', anniversary: c?.anniversary ?? '', notes: c?.notes ?? '', referralCode: '' });
     this.drawer.set(true);
   }
 
   protected save(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const v = this.form.getRawValue();
-    const body = { fullName: v.fullName, phone: v.phone || null, email: v.email || null, birthday: v.birthday || null, anniversary: v.anniversary || null, notes: v.notes || null, isActive: true };
+    const body = { fullName: v.fullName, phone: v.phone || null, email: v.email || null, birthday: v.birthday || null, anniversary: v.anniversary || null, notes: v.notes || null, isActive: true, referralCode: v.referralCode || null };
     const id = this.editingId();
     this.busy.set(true);
     (id ? this.api.put<Customer>(`customers/${id}`, body) : this.api.post<Customer>('customers', body)).subscribe({

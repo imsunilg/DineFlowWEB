@@ -5,7 +5,7 @@ import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 import { BrandingService } from '../core/branding.service';
 import { errorMessage } from '../core/http.interceptors';
-import { Bill, Customer, FloorLayout, MenuItem, MenuTree, ORDER_TYPES, Order, OrderLine, OrderType, Paged } from '../core/models';
+import { Bill, Customer, FloorLayout, MenuItem, MenuTree, ORDER_TYPES, Offer, Order, OrderLine, OrderPromotions, OrderType, Paged } from '../core/models';
 import { ToastService } from '../core/toast.service';
 import { ConfirmService, ModalComponent, SkeletonComponent } from '../shared/ui';
 import { PaymentModalComponent } from './payment-modal';
@@ -135,6 +135,8 @@ const TABLE_DOT: Record<string, string> = { Available: 'bg-emerald-500', Reserve
           <div class="space-y-1 border-t border-gray-100 bg-gray-50/60 px-5 py-3 text-sm">
             <div class="flex justify-between text-gray-600"><span>Subtotal</span><span>{{ branding.money(o.subtotal) }}</span></div>
             @if (o.discountAmount > 0) { <div class="flex justify-between text-emerald-700"><span>Discount</span><span>-{{ branding.money(o.discountAmount) }}</span></div> }
+            @if (o.offerDiscount > 0) { <div class="flex justify-between text-emerald-700"><span>Coupon {{ o.offerCode }}</span><span>-{{ branding.money(o.offerDiscount) }}</span></div> }
+            @if (o.pointsDiscount > 0) { <div class="flex justify-between text-emerald-700"><span>Points ({{ o.pointsRedeemed }})</span><span>-{{ branding.money(o.pointsDiscount) }}</span></div> }
             @if (o.taxAmount > 0) { <div class="flex justify-between text-gray-600"><span>Tax</span><span>{{ branding.money(o.taxAmount) }}</span></div> }
             @if (o.serviceChargeAmount > 0) { <div class="flex justify-between text-gray-600"><span>Service charge</span><span>{{ branding.money(o.serviceChargeAmount) }}</span></div> }
             @if (o.roundOff !== 0) { <div class="flex justify-between text-gray-600"><span>Round off</span><span>{{ branding.money(o.roundOff) }}</span></div> }
@@ -146,6 +148,7 @@ const TABLE_DOT: Record<string, string> = { Available: 'bg-emerald-500', Reserve
           <button type="button" class="btn-primary col-span-2 py-3 text-base" [disabled]="busy() || draftCount() === 0" (click)="send()"><span class="mi">send</span>Send to kitchen{{ draftCount() ? ' (' + draftCount() + ')' : '' }}</button>
           @if (canBill()) { <button type="button" class="btn-ghost" [disabled]="busy() || !canGenerate()" (click)="billAndPay()"><span class="mi">payments</span>Bill & pay</button> }
           @if (canDiscount()) { <button type="button" class="btn-ghost" [disabled]="busy() || !order()" (click)="openDiscount()"><span class="mi">percent</span>Discount</button> }
+          @if (order() && lines().length > 0) { <button type="button" class="btn-ghost col-span-2" [disabled]="busy()" (click)="openPromo()"><span class="mi">sell</span>Coupon & points</button> }
           @if (order()?.status === 'Ready') { <button type="button" class="btn-ghost col-span-2" [disabled]="busy()" (click)="serve()"><span class="mi">room_service</span>Mark served</button> }
           @if (canCancelOrder() && order()) { <button type="button" class="col-span-2 text-xs font-semibold text-red-600 hover:underline" (click)="askCancelOrder()">Cancel order</button> }
         </footer>
@@ -211,6 +214,40 @@ const TABLE_DOT: Record<string, string> = { Available: 'bg-emerald-500', Reserve
         @if ((order()?.discountAmount ?? 0) > 0) { <button type="button" class="btn-ghost mr-auto" (click)="clearDiscount()">Remove discount</button> }
         <button type="button" class="btn-ghost" (click)="discountOpen.set(false)">Cancel</button><button type="button" class="btn-primary" (click)="applyDiscount()">Apply</button>
       </div>
+    </app-modal>
+
+    <!-- coupon & points -->
+    <app-modal [open]="promoOpen()" title="Coupon & loyalty points" (closed)="promoOpen.set(false)">
+      @if (promo(); as p) {
+        <div class="space-y-5">
+          <section>
+            <p class="label">Coupon</p>
+            @if (p.appliedOfferCode) {
+              <div class="flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800"><span><b>{{ p.appliedOfferCode }}</b> — {{ p.appliedOfferName }} (−{{ branding.money(p.offerDiscount) }})</span>
+                <button type="button" class="font-semibold underline" [disabled]="busy()" (click)="removeCoupon()">Remove</button></div>
+            } @else {
+              <div class="flex gap-2"><input class="input uppercase" placeholder="Enter code" aria-label="Coupon code" maxlength="30" [value]="couponCode()" (input)="couponCode.set($any($event.target).value)" (keydown.enter)="applyCoupon()" />
+                <button type="button" class="btn-primary" [disabled]="busy() || !couponCode().trim()" (click)="applyCoupon()">Apply</button></div>
+              @if (offers().length) { <div class="mt-2 flex flex-wrap gap-2">@for (o of offers(); track o.id) { <button type="button" class="badge cursor-pointer bg-gray-100 px-3 py-1.5 text-gray-700 hover:bg-brand/10 hover:text-brand" [title]="o.name" (click)="couponCode.set(o.code)">{{ o.code }} · {{ o.discountType === 'Percent' ? o.discountValue + '%' : branding.money(o.discountValue) }}</button> }</div> }
+            }
+          </section>
+          <section>
+            <p class="label">Loyalty points</p>
+            @if (!p.customerId) { <p class="text-sm text-gray-500">Select a customer on the order to use loyalty points.</p> }
+            @else {
+              <p class="text-sm text-gray-700"><b>{{ p.customerName }}</b>@if (p.tierName) { · {{ p.tierName }} }· {{ p.pointsBalance }} points@if (p.redeemValuePerPoint > 0) { (each worth {{ branding.money(p.redeemValuePerPoint) }}) }</p>
+              @if (p.maxRedeemablePoints > 0) {
+                <div class="mt-2 flex gap-2"><input class="input" type="number" min="0" [max]="p.maxRedeemablePoints" aria-label="Points to redeem" [value]="pointsInput()" (input)="pointsInput.set(+$any($event.target).value)" />
+                  <button type="button" class="btn-ghost" (click)="pointsInput.set(p.maxRedeemablePoints)">Max {{ p.maxRedeemablePoints }}</button>
+                  <button type="button" class="btn-primary" [disabled]="busy()" (click)="applyPoints()">Apply</button></div>
+                @if (p.pointsRedeemed > 0) { <p class="mt-2 text-sm text-emerald-700">{{ p.pointsRedeemed }} points applied (−{{ branding.money(p.pointsDiscount) }}). <button type="button" class="underline" (click)="clearPoints()">Remove</button></p> }
+              } @else { <p class="mt-1 text-sm text-gray-500">{{ p.pointsBalance === 0 ? 'No points to redeem yet.' : 'Not enough points to redeem (minimum ' + p.minRedeemPoints + ').' }}</p> }
+            }
+          </section>
+          @if (formError()) { <p class="field-error">{{ formError() }}</p> }
+        </div>
+      }
+      <div modal-actions><button type="button" class="btn-primary" (click)="promoOpen.set(false)">Done</button></div>
     </app-modal>
 
     <!-- cancel with reason -->
@@ -404,6 +441,38 @@ export class PosComponent implements OnInit {
   }
 
   private refreshOrder(): void { const o = this.order(); if (o) this.api.get<Order>(`orders/${o.id}`).subscribe(x => this.order.set(x)); }
+
+  // ---- coupon & points ----
+  protected readonly promoOpen = signal(false);
+  protected readonly promo = signal<OrderPromotions | null>(null);
+  protected readonly offers = signal<Offer[]>([]);
+  protected readonly couponCode = signal('');
+  protected readonly pointsInput = signal(0);
+
+  protected openPromo(): void {
+    this.formError.set(''); this.couponCode.set('');
+    this.promoOpen.set(true);
+    this.loadPromo();
+    this.api.get<Offer[]>('loyalty/offers/active').subscribe({ next: o => this.offers.set(o), error: () => undefined });
+  }
+
+  private loadPromo(): void {
+    const o = this.order();
+    if (o) this.api.get<OrderPromotions>(`orders/${o.id}/promotions`).subscribe(p => { this.promo.set(p); this.pointsInput.set(p.pointsRedeemed || p.maxRedeemablePoints); });
+  }
+
+  private promoCall(req: import('rxjs').Observable<Order>, ok: string): void {
+    this.busy.set(true); this.formError.set('');
+    req.subscribe({
+      next: o => { this.busy.set(false); this.order.set(o); this.toast.success(ok); this.loadPromo(); },
+      error: e => { this.busy.set(false); this.formError.set(errorMessage(e)); },
+    });
+  }
+
+  protected applyCoupon(): void { const o = this.order(); if (o) this.promoCall(this.api.post<Order>(`orders/${o.id}/coupon`, { code: this.couponCode().trim() }), 'Coupon applied'); }
+  protected removeCoupon(): void { const o = this.order(); if (o) this.promoCall(this.api.deleteData<Order>(`orders/${o.id}/coupon`), 'Coupon removed'); }
+  protected applyPoints(): void { const o = this.order(); if (o) this.promoCall(this.api.post<Order>(`orders/${o.id}/points`, { points: this.pointsInput() }), 'Points applied'); }
+  protected clearPoints(): void { const o = this.order(); if (o) { this.pointsInput.set(0); this.promoCall(this.api.post<Order>(`orders/${o.id}/points`, { points: 0 }), 'Points removed'); } }
 
   // ---- customer / discount / cancel ----
   protected openCustomer(): void { this.customerOpen.set(true); this.searchCustomers(''); }

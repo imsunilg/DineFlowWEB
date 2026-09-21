@@ -15,6 +15,7 @@ const NAV: NavGroup[] = [
     { label: 'Tables', icon: 'table_restaurant', link: '/tables', permission: 'Table.View', feature: 'restaurantManagement' },
     { label: 'Orders', icon: 'receipt_long', link: '/orders', permission: 'Order.View' },
     { label: 'Kitchen', icon: 'soup_kitchen', link: '/kitchen', permission: 'Kitchen.View' },
+    { label: 'Reservations', icon: 'event_available', link: '/reservations', permission: 'Reservation.View', feature: 'reservation' },
   ] },
   { title: 'Bar', items: [
     { label: 'Bar POS', icon: 'local_bar', link: '/bar/pos', permission: 'Order.Create', feature: 'barManagement' },
@@ -34,7 +35,11 @@ const NAV: NavGroup[] = [
     { label: 'Items & setup', icon: 'category', link: '/inventory/items', permission: 'Inventory.View', feature: 'inventory' },
     { label: 'Recipes', icon: 'menu_book', link: '/inventory/recipes', permission: 'Inventory.View', feature: 'inventory' },
   ] },
-  { title: 'CRM', items: [{ label: 'Customers', icon: 'groups', link: '/customers', permission: 'Customer.View' }] },
+  { title: 'CRM', items: [
+    { label: 'Customers', icon: 'groups', link: '/customers', permission: 'Customer.View' },
+    { label: 'Loyalty', icon: 'loyalty', link: '/loyalty', permission: 'Loyalty.View', feature: 'loyalty' },
+    { label: 'Offers', icon: 'sell', link: '/offers', permission: 'Loyalty.View', feature: 'loyalty' },
+  ] },
 ];
 
 @Component({

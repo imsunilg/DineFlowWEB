@@ -65,7 +65,8 @@ export interface OrderLine {
 export interface Order {
   id: string; orderNo: string; orderType: OrderType; tableId: string | null; tableCode: string | null; customerId: string | null; customerName: string | null;
   status: string; notes: string | null; subtotal: number; discountType: string | null; discountValue: number; discountAmount: number; discountReason: string | null;
-  taxAmount: number; serviceChargeAmount: number; roundOff: number; grandTotal: number; billId: string | null; createdAt: string; lines: OrderLine[];
+  taxAmount: number; serviceChargeAmount: number; roundOff: number; grandTotal: number; billId: string | null; createdAt: string;
+  offerCode: string | null; offerDiscount: number; pointsRedeemed: number; pointsDiscount: number; lines: OrderLine[];
 }
 export interface OrderSummary { id: string; orderNo: string; orderType: string; tableCode: string | null; customerName: string | null; status: string; grandTotal: number; itemCount: number; createdAt: string }
 
@@ -149,3 +150,31 @@ export interface PurchaseInvoice {
 }
 
 export interface AppNotification { id: string; type: string; title: string; message: string; entity: string | null; entityId: string | null; isRead: boolean; createdAt: string }
+
+// ---- CRM ----
+export interface LoyaltySettings { enabled: boolean; pointsPerCurrency: number; redeemValuePerPoint: number; minRedeemPoints: number; maxRedeemPercent: number; referralBonusPoints: number }
+export interface Tier { id: string; name: string; minLifetimePoints: number; earnMultiplier: number; perks: string | null; sortOrder: number; isActive: boolean }
+export interface LoyaltyAccount { id: string; customerId: string; customerName: string; phone: string | null; pointsBalance: number; lifetimePoints: number; tierId: string | null; tierName: string | null; referralCode: string; joinedAt: string }
+export interface LoyaltyTxn { id: string; type: string; points: number; balanceAfter: number; notes: string | null; referenceType: string | null; createdAt: string }
+export interface Offer {
+  id: string; code: string; name: string; description: string | null; discountType: 'Percent' | 'Amount'; discountValue: number; minBillAmount: number; maxDiscount: number | null;
+  serviceArea: string | null; validFrom: string | null; validTo: string | null; usageLimit: number | null; perCustomerLimit: number | null; usedCount: number; isActive: boolean; isCurrentlyValid: boolean;
+}
+export interface OrderPromotions {
+  customerId: string | null; customerName: string | null; pointsBalance: number; tierName: string | null; maxRedeemablePoints: number; redeemValuePerPoint: number; minRedeemPoints: number;
+  appliedOfferCode: string | null; appliedOfferName: string | null; offerDiscount: number; pointsRedeemed: number; pointsDiscount: number;
+}
+export interface CustomerStats { totalVisits: number; totalOrders: number; totalSpend: number; averageOrderValue: number; lastVisit: string | null; favoriteItems: { name: string; quantity: number }[]; favoriteDrinks: { name: string; quantity: number }[] }
+export interface CustomerProfile {
+  customer: Customer; stats: CustomerStats; loyalty: LoyaltyAccount | null;
+  preferences: { id: string; category: string; value: string }[]; notes: { id: string; note: string; createdAt: string }[];
+  addresses: { id: string; label: string; line1: string; line2: string | null; city: string | null; postalCode: string | null; isDefault: boolean }[];
+  recentOrders: OrderSummary[];
+}
+export interface CustomerPayment { billId: string; billNo: string; orderNo: string; amount: number; paidAt: string; methods: string }
+export type ReservationStatus = 'Requested' | 'Confirmed' | 'Arrived' | 'Seated' | 'Completed' | 'Cancelled' | 'NoShow';
+export interface Reservation {
+  id: string; reservationNo: string; customerId: string | null; guestName: string; phone: string | null; guestCount: number; reservedAt: string; durationMinutes: number;
+  tableId: string | null; tableCode: string | null; status: ReservationStatus; specialRequest: string | null; cancelReason: string | null; source: string; allowedTransitions: ReservationStatus[];
+}
+export interface TableAvailability { tableId: string; code: string; floorName: string; capacity: number; available: boolean; reason: string | null }
