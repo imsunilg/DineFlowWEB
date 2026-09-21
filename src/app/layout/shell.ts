@@ -40,6 +40,11 @@ const NAV: NavGroup[] = [
     { label: 'Loyalty', icon: 'loyalty', link: '/loyalty', permission: 'Loyalty.View', feature: 'loyalty' },
     { label: 'Offers', icon: 'sell', link: '/offers', permission: 'Loyalty.View', feature: 'loyalty' },
   ] },
+  { title: 'Finance', items: [
+    { label: 'Expenses', icon: 'payments', link: '/finance/expenses', permission: 'Expense.View' },
+    { label: 'Expense categories', icon: 'label', link: '/finance/expense-categories', permission: 'Expense.View' },
+    { label: 'Taxes & payments', icon: 'receipt', link: '/finance/settings', permission: 'Payment.View' },
+  ] },
 ];
 
 @Component({
