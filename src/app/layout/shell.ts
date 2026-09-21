@@ -45,6 +45,18 @@ const NAV: NavGroup[] = [
     { label: 'Expense categories', icon: 'label', link: '/finance/expense-categories', permission: 'Expense.View' },
     { label: 'Taxes & payments', icon: 'receipt', link: '/finance/settings', permission: 'Payment.View' },
   ] },
+  { title: 'Staff', items: [
+    { label: 'Employees', icon: 'badge', link: '/staff/employees', permission: 'Staff.View', feature: 'staff' },
+    { label: 'Attendance', icon: 'schedule', link: '/staff/attendance', permission: 'Staff.View', feature: 'staff' },
+    { label: 'Leave', icon: 'beach_access', link: '/staff/leave', permission: 'Staff.View', feature: 'staff' },
+    { label: 'Departments & shifts', icon: 'account_tree', link: '/staff/setup', permission: 'Staff.View', feature: 'staff' },
+  ] },
+  { title: 'Insights', items: [{ label: 'Reports', icon: 'assessment', link: '/reports', permission: 'Reports.View' }] },
+  { title: 'Administration', items: [
+    { label: 'Users', icon: 'manage_accounts', link: '/admin/users', permission: 'User.View' },
+    { label: 'Roles & permissions', icon: 'admin_panel_settings', link: '/admin/roles', permission: 'Role.View' },
+    { label: 'Business settings', icon: 'settings', link: '/admin/settings', permission: 'Tenant.View' },
+  ] },
 ];
 
 @Component({
