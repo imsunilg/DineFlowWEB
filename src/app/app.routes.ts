@@ -10,6 +10,9 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       { path: 'dashboard', canActivate: [accessGuard], data: { permission: 'Dashboard.View' }, loadComponent: () => import('./dashboard/dashboard').then(m => m.DashboardComponent) },
+      { path: 'pos', canActivate: [accessGuard], data: { permission: 'Order.Create', feature: 'restaurantManagement' }, loadComponent: () => import('./pos/pos').then(m => m.PosComponent) },
+      { path: 'orders', canActivate: [accessGuard], data: { permission: 'Order.View' }, loadComponent: () => import('./pos/orders').then(m => m.OrdersComponent) },
+      { path: 'kitchen', canActivate: [accessGuard], data: { permission: 'Kitchen.View' }, loadComponent: () => import('./kitchen/kitchen').then(m => m.KitchenComponent) },
       { path: 'tables', canActivate: [accessGuard], data: { permission: 'Table.View', feature: 'restaurantManagement' }, loadComponent: () => import('./restaurant/tables').then(m => m.TablesComponent) },
       { path: 'menu', canActivate: [accessGuard], data: { permission: 'Menu.View', feature: 'restaurantManagement' }, loadComponent: () => import('./menu/menu-items').then(m => m.MenuItemsComponent) },
       { path: 'menu/categories', canActivate: [accessGuard], data: { permission: 'Menu.View', feature: 'restaurantManagement' }, loadComponent: () => import('./menu/menu-categories').then(m => m.MenuCategoriesComponent) },

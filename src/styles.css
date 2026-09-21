@@ -23,3 +23,9 @@ body { margin: 0; font-family: var(--font-sans); background: #f5f6fa; color: #1f
 .mi { font-family: "Material Icons Outlined"; font-weight: normal; font-style: normal; font-size: 20px; line-height: 1; display: inline-block; -webkit-font-smoothing: antialiased; }
 .toast-success { --mat-snack-bar-container-color: #065f46; --mat-snack-bar-supporting-text-color: #fff; }
 .toast-error { --mat-snack-bar-container-color: #991b1b; --mat-snack-bar-supporting-text-color: #fff; }
+
+@media print {
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area { position: absolute; left: 0; top: 0; width: 80mm; max-width: 80mm; }
+}

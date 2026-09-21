@@ -9,7 +9,12 @@ interface NavGroup { title: string; items: NavItem[] }
 /** Only routes that exist are listed; later phases append their entries here. */
 const NAV: NavGroup[] = [
   { title: '', items: [{ label: 'Dashboard', icon: 'space_dashboard', link: '/dashboard', permission: 'Dashboard.View' }] },
-  { title: 'Operations', items: [{ label: 'Tables', icon: 'table_restaurant', link: '/tables', permission: 'Table.View', feature: 'restaurantManagement' }] },
+  { title: 'Operations', items: [
+    { label: 'POS', icon: 'point_of_sale', link: '/pos', permission: 'Order.Create', feature: 'restaurantManagement' },
+    { label: 'Tables', icon: 'table_restaurant', link: '/tables', permission: 'Table.View', feature: 'restaurantManagement' },
+    { label: 'Orders', icon: 'receipt_long', link: '/orders', permission: 'Order.View' },
+    { label: 'Kitchen', icon: 'soup_kitchen', link: '/kitchen', permission: 'Kitchen.View' },
+  ] },
   { title: 'Restaurant', items: [
     { label: 'Menu', icon: 'restaurant_menu', link: '/menu', permission: 'Menu.View', feature: 'restaurantManagement' },
     { label: 'Categories', icon: 'category', link: '/menu/categories', permission: 'Menu.View', feature: 'restaurantManagement' },

@@ -24,6 +24,31 @@ export class DrawerComponent {
   readonly closed = output<void>();
 }
 
+/** Centered dialog used where a right-hand drawer is the wrong shape (item chooser, payment, receipt). */
+@Component({
+  selector: 'app-modal',
+  template: `
+    @if (open()) {
+      <div class="fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px]" (click)="closed.emit()"></div>
+      <div class="pointer-events-none fixed inset-0 z-50 grid place-items-center p-4">
+        <section class="pointer-events-auto flex max-h-[90vh] w-full flex-col rounded-2xl bg-white shadow-2xl" [class]="width()" role="dialog" aria-modal="true">
+          <header class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+            <h2 class="text-lg font-semibold text-gray-900">{{ title() }}</h2>
+            <button type="button" class="rounded-lg p-1 text-gray-500 hover:bg-gray-100" aria-label="Close" (click)="closed.emit()"><span class="mi">close</span></button>
+          </header>
+          <div class="flex-1 overflow-y-auto px-6 py-5"><ng-content /></div>
+          <footer class="flex justify-end gap-2 border-t border-gray-100 px-6 py-4 empty:hidden"><ng-content select="[modal-actions]" /></footer>
+        </section>
+      </div>
+    }`,
+})
+export class ModalComponent {
+  readonly open = input(false);
+  readonly title = input('');
+  readonly width = input('max-w-lg');
+  readonly closed = output<void>();
+}
+
 @Component({
   selector: 'app-empty-state',
   template: `

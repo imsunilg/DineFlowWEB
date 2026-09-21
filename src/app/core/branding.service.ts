@@ -33,8 +33,9 @@ export class BrandingService {
   }
 
   money(value: number): string {
-    const b = this.branding();
-    return `${b?.currencySymbol ?? ''}${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const symbol = this.branding()?.currencySymbol ?? '';
+    const amount = Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return `${value < 0 ? '-' : ''}${symbol}${amount}`;
   }
 
   private apply(b: Branding): void {
