@@ -1,1 +1,9 @@
-{ "apiBaseUrl": "/api/v1", "defaultTenantCode": "DINEFLOW" }
+{
+  "apiBaseUrl": "/api/v1",
+  "defaultTenantCode": "DINEFLOW",
+  "features": { "demoLogin": true },
+  "demoUsers": [
+    { "label": "Login as Admin", "loginId": "admin", "password": "DineFlow@123" },
+    { "label": "Login as Manager", "loginId": "manager", "password": "Demo@123" }
+  ]
+}

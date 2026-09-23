@@ -1,12 +1,16 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Subject, debounceTime } from 'rxjs';
 import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 import { errorMessage } from '../core/http.interceptors';
 import { BarCounter, Paged, StockReportRow, StockRow, StockTxn } from '../core/models';
+import { SignalrService } from '../core/services/signalr.service';
 import { ToastService } from '../core/toast.service';
 import { DrawerComponent, EmptyStateComponent, ErrorStateComponent, PagerComponent, SkeletonComponent } from '../shared/ui';
+
+const BAR_STOCK_EVENTS = ['BarStockUpdated', 'BarStockAdjusted', 'BarStockTransferred', 'BarStockWasted', 'LowStock'];
 
 type Tab = 'stock' | 'movements' | 'report';
 const TYPE_STYLE: Record<string, string> = {
@@ -155,6 +159,9 @@ export class BarStockComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
+  private readonly signalr = inject(SignalrService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly realtime$ = new Subject<void>();
 
   protected readonly tabs: { key: Tab; label: string }[] = [{ key: 'stock', label: 'Current stock' }, { key: 'movements', label: 'Movements' }, { key: 'report', label: 'Period report' }];
   protected readonly typeStyle = TYPE_STYLE;
@@ -190,16 +197,22 @@ export class BarStockComponent implements OnInit {
       this.counterId.set(active.find(x => x.isDefault)?.id ?? active[0]?.id ?? '');
       this.load();
     });
+
+    this.realtime$.pipe(debounceTime(400)).subscribe(() => this.refresh(true));
+    const unsubscribes = BAR_STOCK_EVENTS.map(type => this.signalr.on(type, () => this.realtime$.next()));
+    unsubscribes.push(this.signalr.onReconnected(() => this.refresh()));
+    this.destroyRef.onDestroy(() => unsubscribes.forEach(u => u()));
   }
 
   protected setCounter(id: string): void { this.counterId.set(id); this.txnPage.set(1); this.refresh(); }
   protected setTab(t: Tab): void { this.tab.set(t); this.refresh(); }
   protected goTxn(p: number): void { this.txnPage.set(p); this.loadTxns(); }
 
-  private refresh(): void { if (this.tab() === 'stock') this.load(); else if (this.tab() === 'movements') this.loadTxns(); else this.loadReport(); }
+  private refresh(silent = false): void { if (this.tab() === 'stock') this.load(silent); else if (this.tab() === 'movements') this.loadTxns(); else this.loadReport(); }
 
-  protected load(): void {
-    this.loading.set(true); this.error.set('');
+  protected load(silent = false): void {
+    if (!silent) this.loading.set(true);
+    this.error.set('');
     this.api.get<StockRow[]>('bar/stock', { counterId: this.counterId() }).subscribe({
       next: s => { this.stock.set(s); this.loading.set(false); },
       error: e => { this.error.set(errorMessage(e)); this.loading.set(false); },

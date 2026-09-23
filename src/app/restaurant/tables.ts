@@ -1,9 +1,10 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 import { errorMessage } from '../core/http.interceptors';
 import { Branch, DiningTable, FloorLayout, TABLE_STATUSES, TableStatus, TableType } from '../core/models';
+import { SignalrService } from '../core/services/signalr.service';
 import { ToastService } from '../core/toast.service';
 import { ConfirmService, DrawerComponent, EmptyStateComponent, ErrorStateComponent, SkeletonComponent } from '../shared/ui';
 
@@ -122,6 +123,8 @@ export class TablesComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
   private readonly fb = inject(FormBuilder);
+  private readonly signalr = inject(SignalrService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly statuses = TABLE_STATUSES;
   protected readonly style = STATUS_STYLE;
@@ -151,7 +154,12 @@ export class TablesComponent implements OnInit {
   });
   protected readonly floorForm = this.fb.nonNullable.group({ name: ['', [Validators.required, Validators.maxLength(100)]] });
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.load();
+    // No refetch: patch only the table the event names, per entity, not a full-screen reload.
+    const off = this.signalr.on<{ tableId: string; status: TableStatus }>('TableStatusChanged', e => this.patchStatus(e.data.tableId, e.data.status));
+    this.destroyRef.onDestroy(off);
+  }
 
   protected count(s: TableStatus): number { return this.all().filter(t => t.status === s).length; }
   protected visible(f: FloorLayout): DiningTable[] { const s = this.filter(); return s ? f.tables.filter(t => t.status === s) : f.tables; }
@@ -220,5 +228,10 @@ export class TablesComponent implements OnInit {
 
   private replace(updated: DiningTable): void {
     this.layout.update(l => l.map(f => ({ ...f, tables: f.tables.map(t => (t.id === updated.id ? updated : t)) })));
+  }
+
+  private patchStatus(tableId: string, status: TableStatus): void {
+    this.layout.update(l => l.map(f => ({ ...f, tables: f.tables.map(t => (t.id === tableId ? { ...t, status } : t)) })));
+    if (this.selected()?.id === tableId) this.selected.update(t => (t ? { ...t, status } : t));
   }
 }

@@ -7,7 +7,7 @@ Companions: [DineFlowDB](../DineFlowDB), [DineFlowMOBILE](../DineFlowMOBILE). Pl
 
 ## Prerequisites
 
-Node 22, npm 11, and a running DineFlowAPI (default `http://localhost:5080`).
+Node 22, npm 11, and a running DineFlowAPI (default `http://localhost:5100`).
 
 ## Installation
 
@@ -18,12 +18,15 @@ npm ci
 ## Running Angular
 
 ```bash
-npm start           # http://localhost:4200 ; /api and /health are proxied to :5080 (proxy.conf.json)
+npm start           # http://localhost:4100 (all interfaces) ; /api and /health are proxied to :5100 (proxy.conf.json)
 npm run build       # production bundle in dist/dineflow-web/browser
 npm test            # unit tests (Vitest)
 ```
 
-Development sign-in (from the API's dev seed): `admin@dineflow.local` / `DineFlow@Dev1`.
+Development sign-in (from the API's dev seed): `admin@dineflow.local` / `DineFlow@123`, or use the **Demo Login** buttons on the
+sign-in screen (login ID `admin` / `manager`) — see [DineFlowAPI/README.md](../DineFlowAPI/README.md#dineflow-demo-credentials--development--demo-only).
+Demo Login is DEVELOPMENT/DEMO ONLY and is controlled by `features.demoLogin` in `public/config.json`; it must be `false`
+(the container default) for any production deployment.
 
 ## Database setup, running the API and Flutter
 
@@ -59,6 +62,13 @@ Comes from the database and the API's development seed; the web app has none of 
 Sign in with email and password. The access token (15 minutes) is attached by an interceptor; a `401` triggers one shared refresh (refresh tokens rotate) and a retry;
 if the refresh fails the user is signed out. Routes are guarded by **permission** and by the tenant's **feature flags**; the API enforces both again. The session is kept in `localStorage`
 (token lifetimes are short and the refresh token rotates, but treat the browser profile as sensitive on shared machines).
+
+## Real-time
+
+`core/services/signalr.service.ts` holds one [SignalR](https://learn.microsoft.com/aspnet/core/signalr) connection for the session: it connects on
+sign-in, disconnects on sign-out, and reconnects automatically. Orders, tables, bills, reservations and notifications update on screen as they
+happen — the shell header shows **● Live** / **Reconnecting…** / **Offline**. The hub URL is derived from `apiBaseUrl` in `public/config.json`,
+so LAN development needs no separate setting; see the API's [docs/ARCHITECTURE.md](../DineFlowAPI/docs/ARCHITECTURE.md#real-time-signalr) for the event list.
 
 ## Structure
 
@@ -96,7 +106,7 @@ Nothing to migrate: the app is stateless. New API fields are ignored by older bu
 | Symptom | Fix |
 | --- | --- |
 | Blank page, console shows failed `/config.json` | The file is missing or invalid JSON; the app falls back to `/api/v1` and no default tenant. |
-| API calls 404 in `npm start` | The API is not on `:5080`; edit `proxy.conf.json`. |
+| API calls 404 in `npm start` | The API is not on `:5100`; edit `proxy.conf.json`. |
 | Sign-in page shows no branding | `defaultTenantCode` is empty or unknown; set it, or sign in and the tenant is read from the token. |
 | A menu entry is missing | The role lacks the permission, or the tenant switched the module off (*Administration → Business settings*). |
 | Amounts show the wrong currency | The tenant's currency symbol in Business settings; the app never chooses one itself. |

@@ -1,16 +1,18 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { Subject, debounceTime, firstValueFrom } from 'rxjs';
 import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 import { BrandingService } from '../core/branding.service';
 import { errorMessage } from '../core/http.interceptors';
 import { Bill, Customer, FloorLayout, MenuItem, MenuTree, ORDER_TYPES, Offer, Order, OrderLine, OrderPromotions, OrderType, Paged } from '../core/models';
+import { SignalrService } from '../core/services/signalr.service';
 import { ToastService } from '../core/toast.service';
 import { ConfirmService, ModalComponent, SkeletonComponent } from '../shared/ui';
 import { PaymentModalComponent } from './payment-modal';
 
 const TABLE_DOT: Record<string, string> = { Available: 'bg-emerald-500', Reserved: 'bg-amber-500', Occupied: 'bg-rose-500', Cleaning: 'bg-sky-500', Blocked: 'bg-gray-400' };
+const MENU_EVENTS = ['MenuUpdated', 'MenuPriceChanged', 'MenuAvailabilityChanged'];
 
 /**
  * Point of sale. Flow: pick table -> tap items -> adjust qty / note -> Send.
@@ -266,6 +268,9 @@ export class PosComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
   private readonly route = inject(ActivatedRoute);
+  private readonly signalr = inject(SignalrService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly menuRealtime$ = new Subject<void>();
   protected readonly branding = inject(BrandingService);
   protected readonly Math = Math;
 
@@ -334,8 +339,17 @@ export class PosComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.api.get<MenuTree[]>('menu', { onlyAvailable: true }).subscribe({ next: t => { this.tree.set(t); this.loading.set(false); }, error: e => { this.loading.set(false); this.toast.error(errorMessage(e)); } });
+    this.loadMenu();
     this.loadLayout(() => { const t = this.route.snapshot.queryParamMap.get('table'); if (t) this.pickTable(t); });
+
+    this.menuRealtime$.pipe(debounceTime(400)).subscribe(() => this.loadMenu());
+    const unsubscribes = MENU_EVENTS.map(type => this.signalr.on(type, () => this.menuRealtime$.next()));
+    unsubscribes.push(this.signalr.onReconnected(() => this.loadMenu()));
+    this.destroyRef.onDestroy(() => unsubscribes.forEach(u => u()));
+  }
+
+  private loadMenu(): void {
+    this.api.get<MenuTree[]>('menu', { onlyAvailable: true }).subscribe({ next: t => { this.tree.set(t); this.loading.set(false); }, error: e => { this.loading.set(false); this.toast.error(errorMessage(e)); } });
   }
 
   private loadLayout(then?: () => void): void {

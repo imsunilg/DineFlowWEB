@@ -1,5 +1,5 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, input, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Subject, debounceTime } from 'rxjs';
 import { ApiService } from '../core/api.service';
@@ -7,8 +7,11 @@ import { AuthService } from '../core/auth.service';
 import { BrandingService } from '../core/branding.service';
 import { errorMessage } from '../core/http.interceptors';
 import { InvStockRow, InvTxn, Paged, StockAlert, Warehouse } from '../core/models';
+import { SignalrService } from '../core/services/signalr.service';
 import { ToastService } from '../core/toast.service';
 import { DrawerComponent, EmptyStateComponent, ErrorStateComponent, PagerComponent, SkeletonComponent } from '../shared/ui';
+
+const INVENTORY_EVENTS = ['InventoryUpdated', 'StockAdjusted', 'StockTransferred', 'StockReceived', 'StockWasted', 'LowStock'];
 
 const LEVEL_STYLE: Record<string, string> = { OK: 'bg-emerald-50 text-emerald-700', Low: 'bg-amber-100 text-amber-800', Out: 'bg-red-100 text-red-700', Over: 'bg-sky-100 text-sky-700' };
 const TYPE_STYLE: Record<string, string> = {
@@ -142,6 +145,9 @@ export class InventoryStockComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
   protected readonly branding = inject(BrandingService);
+  private readonly signalr = inject(SignalrService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly realtime$ = new Subject<void>();
 
   /** Route data: 'stock' (default) or 'movements' for the Adjustments menu entry. */
   readonly initialTab = input<'stock' | 'movements'>('stock');
@@ -189,6 +195,11 @@ export class InventoryStockComponent implements OnInit {
       this.refresh();
     });
     this.api.get<StockAlert[]>('inventory/alerts').subscribe({ next: a => this.alerts.set(a.filter(x => x.source === 'Inventory')), error: () => undefined });
+
+    this.realtime$.pipe(debounceTime(400)).subscribe(() => { this.refresh(true); this.reloadAlerts(); });
+    const unsubscribes = INVENTORY_EVENTS.map(type => this.signalr.on(type, () => this.realtime$.next()));
+    unsubscribes.push(this.signalr.onReconnected(() => { this.refresh(); this.reloadAlerts(); }));
+    this.destroyRef.onDestroy(() => unsubscribes.forEach(u => u()));
   }
 
   protected setWarehouse(id: string): void { this.warehouseId.set(id); this.page.set(1); this.txnPage.set(1); this.refresh(); }
@@ -196,10 +207,11 @@ export class InventoryStockComponent implements OnInit {
   protected setLevel(l: string): void { this.level.set(l); this.page.set(1); this.tab.set('stock'); this.load(); }
   protected goTo(p: number): void { this.page.set(p); this.load(); }
   protected goTxn(p: number): void { this.txnPage.set(p); this.loadTxns(); }
-  private refresh(): void { if (this.tab() === 'stock') this.load(); else this.loadTxns(); }
+  private refresh(silent = false): void { if (this.tab() === 'stock') this.load(silent); else this.loadTxns(); }
 
-  protected load(): void {
-    this.loading.set(true); this.error.set('');
+  protected load(silent = false): void {
+    if (!silent) this.loading.set(true);
+    this.error.set('');
     this.api.get<Paged<InvStockRow>>('inventory/stock', { warehouseId: this.warehouseId(), page: this.page(), pageSize: 15, search: this.search, level: this.level() }).subscribe({
       next: r => { this.rows.set(r.items); this.totalPages.set(r.totalPages); this.total.set(r.totalCount); this.loading.set(false); },
       error: e => { this.error.set(errorMessage(e)); this.loading.set(false); },

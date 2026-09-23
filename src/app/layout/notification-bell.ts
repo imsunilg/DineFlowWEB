@@ -5,9 +5,13 @@ import { Router } from '@angular/router';
 import { interval } from 'rxjs';
 import { ApiService } from '../core/api.service';
 import { AppNotification, Paged } from '../core/models';
+import { SignalrService } from '../core/services/signalr.service';
 
 const ICONS: Record<string, string> = { LowStock: 'inventory_2', OrderReady: 'room_service', PaymentReceived: 'payments', NewReservation: 'event_available', NewCustomer: 'person_add' };
 const ROUTES: Record<string, string> = { Order: '/orders', InventoryItem: '/inventory/stock', BarProduct: '/bar/stock', Bill: '/orders', Reservation: '/reservations' };
+/** These are exactly the notification "type" values NotificationService.NotifyAsync uses on the API, and are also
+ * pushed live as SignalR events of the same name, so the bell updates immediately instead of waiting for the poll. */
+const REALTIME_TYPES = Object.keys(ICONS);
 
 /** In-app notifications: unread badge polled every 30 s, dropdown with the latest items. */
 @Component({
@@ -44,6 +48,7 @@ export class NotificationBellComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly host = inject(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly signalr = inject(SignalrService);
 
   protected readonly icons = ICONS;
   protected readonly open = signal(false);
@@ -52,7 +57,12 @@ export class NotificationBellComponent implements OnInit {
 
   ngOnInit(): void {
     this.refreshCount();
+    // The 30s poll is only a safety net (e.g. resync after a missed reconnect); real updates arrive over SignalR.
     interval(30000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => { this.refreshCount(); if (this.open()) this.loadItems(); });
+    for (const type of REALTIME_TYPES) {
+      const off = this.signalr.on(type, () => { this.refreshCount(); if (this.open()) this.loadItems(); });
+      this.destroyRef.onDestroy(off);
+    }
   }
 
   @HostListener('document:click', ['$event'])

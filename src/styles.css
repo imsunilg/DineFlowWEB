@@ -21,6 +21,25 @@ body { margin: 0; font-family: var(--font-sans); background: #f5f6fa; color: #1f
 @utility field-error { @apply mt-1 text-xs text-red-600; }
 
 .mi { font-family: "Material Icons Outlined"; font-weight: normal; font-style: normal; font-size: 20px; line-height: 1; display: inline-block; -webkit-font-smoothing: antialiased; }
+
+/* Login background overlay + card: readable over both LightModeBG.png and DarkModeBG.png without hiding the image. */
+.login-overlay { background: rgba(255, 255, 255, 0.25); }
+:root[data-theme="dark"] .login-overlay { background: rgba(17, 24, 39, 0.45); }
+
+.login-card {
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+:root[data-theme="dark"] .login-card {
+  background: rgba(24, 24, 32, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+:root[data-theme="dark"] .login-card h1 { color: #f3f4f6; }
+:root[data-theme="dark"] .login-card p.text-gray-500 { color: #9ca3af; }
 .toast-success { --mat-snack-bar-container-color: #065f46; --mat-snack-bar-supporting-text-color: #fff; }
 .toast-error { --mat-snack-bar-container-color: #991b1b; --mat-snack-bar-supporting-text-color: #fff; }
 

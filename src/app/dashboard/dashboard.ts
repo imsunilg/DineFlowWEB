@@ -1,14 +1,21 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { forkJoin, of, Subject } from 'rxjs';
+import { catchError, debounceTime } from 'rxjs/operators';
 import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 import { BrandingService } from '../core/branding.service';
 import { errorMessage } from '../core/http.interceptors';
 import { TableSummary } from '../core/models';
+import { SignalrService } from '../core/services/signalr.service';
 import { BarChartComponent, ChartPoint, DonutChartComponent } from '../shared/charts';
 import { ErrorStateComponent, SkeletonComponent } from '../shared/ui';
+
+/** These change the KPI tiles; on any of them, refetch the authoritative summary rather than guess a delta client-side. */
+const REFRESH_ON = [
+  'OrderCreated', 'OrderUpdated', 'OrderCancelled', 'BillUpdated', 'PaymentCompleted', 'TableStatusChanged', 'LowStock', 'NewCustomer',
+  'InventoryUpdated', 'StockAdjusted', 'BarStockUpdated', 'BarStockAdjusted',
+];
 
 interface Kpis {
   salesToday: number; ordersToday: number; customersToday: number; pendingOrders: number; expensesToday: number; purchasesToday: number;
@@ -92,6 +99,8 @@ type Range = 'daily' | 'weekly' | 'monthly';
 export class DashboardComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
+  private readonly signalr = inject(SignalrService);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly branding = inject(BrandingService);
 
   protected readonly ranges: { key: Range; label: string }[] = [{ key: 'daily', label: '14 days' }, { key: 'weekly', label: '8 weeks' }, { key: 'monthly', label: '12 months' }];
@@ -106,16 +115,35 @@ export class DashboardComponent implements OnInit {
     return !d ? [] : this.range() === 'daily' ? d.dailySales : this.range() === 'weekly' ? d.weeklySales : d.monthlySales;
   });
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.load();
+    // Debounced: a burst of orders (e.g. a busy kitchen) triggers one refetch, not one per event.
+    const refresh$ = new Subject<void>();
+    refresh$.pipe(debounceTime(1500)).subscribe(() => this.refresh());
+    for (const type of REFRESH_ON) {
+      const off = this.signalr.on(type, () => refresh$.next());
+      this.destroyRef.onDestroy(off);
+    }
+  }
 
   protected load(): void {
     this.loading.set(true); this.error.set('');
-    forkJoin({
-      dash: this.api.get<Dash>('reports/dashboard'),
-      tables: this.auth.hasPermission('Table.View') ? this.api.get<TableSummary>('tables/summary').pipe(catchError(() => of(null))) : of(null),
-    }).subscribe({
+    this.fetch().subscribe({
       next: r => { this.dash.set(r.dash); this.summary.set(r.tables); this.loading.set(false); },
       error: e => { this.error.set(errorMessage(e)); this.loading.set(false); },
+    });
+  }
+
+  /** Same authoritative refetch as load(), but silent: used after a real-time event so the KPI tiles update
+   * without flashing the loading skeleton over data the user is already looking at. */
+  private refresh(): void {
+    this.fetch().subscribe({ next: r => { this.dash.set(r.dash); this.summary.set(r.tables); }, error: () => undefined });
+  }
+
+  private fetch() {
+    return forkJoin({
+      dash: this.api.get<Dash>('reports/dashboard'),
+      tables: this.auth.hasPermission('Table.View') ? this.api.get<TableSummary>('tables/summary').pipe(catchError(() => of(null))) : of(null),
     });
   }
 

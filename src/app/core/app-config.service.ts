@@ -1,6 +1,12 @@
 import { Injectable } from '@angular/core';
 
-export interface AppConfig { apiBaseUrl: string; defaultTenantCode: string }
+export interface DemoUser { label: string; loginId: string; password: string }
+export interface AppConfig {
+  apiBaseUrl: string;
+  defaultTenantCode: string;
+  features?: { demoLogin?: boolean };
+  demoUsers?: DemoUser[];
+}
 
 /** Runtime configuration loaded from /config.json so the same build can be deployed anywhere. */
 @Injectable({ providedIn: 'root' })
@@ -16,4 +22,7 @@ export class AppConfigService {
 
   get apiBaseUrl(): string { return this.config.apiBaseUrl; }
   get defaultTenantCode(): string { return this.config.defaultTenantCode; }
+  /** Demo Login is a development/demo convenience; the runtime config for any real deployment must set this false. */
+  get demoLoginEnabled(): boolean { return this.config.features?.demoLogin === true; }
+  get demoUsers(): DemoUser[] { return this.config.demoUsers ?? []; }
 }

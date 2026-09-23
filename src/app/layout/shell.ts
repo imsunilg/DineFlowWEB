@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../core/auth.service';
 import { BrandingService } from '../core/branding.service';
+import { SignalrService } from '../core/services/signalr.service';
 import { NotificationBellComponent } from './notification-bell';
 
 interface NavItem { label: string; icon: string; link: string; permission?: string; feature?: string }
@@ -59,6 +60,13 @@ const NAV: NavGroup[] = [
   ] },
 ];
 
+const LIVE_STATUS = {
+  connected: { label: 'Live', class: 'text-emerald-700', dot: 'bg-emerald-500', title: 'Real-time updates are connected' },
+  connecting: { label: 'Connecting…', class: 'text-amber-700', dot: 'bg-amber-500 animate-pulse', title: 'Connecting to real-time updates' },
+  reconnecting: { label: 'Reconnecting…', class: 'text-amber-700', dot: 'bg-amber-500 animate-pulse', title: 'Real-time updates lost the connection; retrying' },
+  disconnected: { label: 'Offline', class: 'text-gray-400', dot: 'bg-gray-300', title: 'Real-time updates are not connected' },
+};
+
 @Component({
   selector: 'app-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NotificationBellComponent],
@@ -95,6 +103,9 @@ const NAV: NavGroup[] = [
           <button type="button" class="rounded-lg p-2 text-gray-600 hover:bg-gray-100 lg:hidden" aria-label="Open menu" (click)="menuOpen.set(true)"><span class="mi">menu</span></button>
           <p class="hidden text-sm font-medium text-gray-500 lg:block">{{ branding.displayName() }}</p>
           <div class="flex items-center gap-3">
+            <span class="hidden items-center gap-1.5 text-xs font-medium sm:flex" [class]="liveStatus().class" [title]="liveStatus().title">
+              <span class="h-2 w-2 rounded-full" [class]="liveStatus().dot"></span>{{ liveStatus().label }}
+            </span>
             <app-notification-bell />
             <div class="text-right leading-tight">
               <p class="text-sm font-semibold text-gray-900">{{ auth.user()?.fullName }}</p>
@@ -110,9 +121,11 @@ const NAV: NavGroup[] = [
 export class ShellComponent {
   protected readonly auth = inject(AuthService);
   protected readonly branding = inject(BrandingService);
+  private readonly signalr = inject(SignalrService);
   protected readonly menuOpen = signal(false);
 
   protected readonly initial = computed(() => (this.branding.name() || '?').charAt(0).toUpperCase());
+  protected readonly liveStatus = computed(() => LIVE_STATUS[this.signalr.state()]);
   protected readonly groups = computed(() =>
     NAV.map(g => ({ ...g, items: g.items.filter(i => (!i.permission || this.auth.hasPermission(i.permission)) && this.branding.isEnabled(i.feature)) }))
        .filter(g => g.items.length > 0));

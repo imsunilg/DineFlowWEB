@@ -1,12 +1,15 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Subject, debounceTime } from 'rxjs';
 import { ApiService } from '../core/api.service';
 import { BrandingService } from '../core/branding.service';
 import { errorMessage } from '../core/http.interceptors';
 import { Order, OrderSummary, Paged } from '../core/models';
+import { SignalrService } from '../core/services/signalr.service';
 import { DrawerComponent, EmptyStateComponent, ErrorStateComponent, PagerComponent, SkeletonComponent } from '../shared/ui';
+
+const ORDER_EVENTS = ['OrderCreated', 'OrderUpdated', 'OrderItemAdded', 'OrderItemUpdated', 'OrderItemRemoved', 'OrderCancelled'];
 
 const STATUSES = ['Draft', 'Confirmed', 'Preparing', 'Ready', 'Served', 'Completed', 'Cancelled'];
 const STATUS_STYLE: Record<string, string> = {
@@ -87,6 +90,8 @@ const STATUS_STYLE: Record<string, string> = {
 })
 export class OrdersComponent implements OnInit {
   private readonly api = inject(ApiService);
+  private readonly signalr = inject(SignalrService);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly branding = inject(BrandingService);
 
   protected readonly statuses = STATUSES;
@@ -103,7 +108,26 @@ export class OrdersComponent implements OnInit {
 
   constructor() { this.search$.pipe(debounceTime(300)).subscribe(s => { this.search = s; this.page.set(1); this.load(); }); }
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.load();
+    const refresh$ = new Subject<void>();
+    refresh$.pipe(debounceTime(800)).subscribe(() => this.silentReload());
+    for (const type of ORDER_EVENTS) {
+      const off = this.signalr.on<{ id: string }>(type, e => {
+        refresh$.next();
+        if (this.detail()?.id === e.data.id) this.api.get<Order>(`orders/${e.data.id}`).subscribe(d => this.detail.set(d));
+      });
+      this.destroyRef.onDestroy(off);
+    }
+  }
+
+  /** Same query as load(), but without the loading skeleton: the list is already on screen. */
+  private silentReload(): void {
+    this.api.get<Paged<OrderSummary>>('orders', { page: this.page(), pageSize: 15, search: this.search, status: this.status, orderType: this.type }).subscribe({
+      next: r => { this.orders.set(r.items); this.totalPages.set(r.totalPages); this.total.set(r.totalCount); },
+      error: () => undefined,
+    });
+  }
   protected setStatus(v: string): void { this.status = v; this.page.set(1); this.load(); }
   protected setType(v: string): void { this.type = v; this.page.set(1); this.load(); }
   protected goTo(p: number): void { this.page.set(p); this.load(); }
